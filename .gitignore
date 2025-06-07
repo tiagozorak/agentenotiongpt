@@ -1,0 +1,6 @@
+__pycache__/
+.env
+venv/
+*.pyc
+relatorio_kanban.txt
+status_anterior.json
