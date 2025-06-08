@@ -1,8 +1,6 @@
-  - type: webAdd commentMore actions
+services:
+  - type: web
     name: agentenotiongpt
     runtime: python
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "python3 main.py"
-
-
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
