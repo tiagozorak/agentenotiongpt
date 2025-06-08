@@ -2,5 +2,5 @@ services:
   - type: web
     name: agentenotiongpt
     runtime: python
-    buildCommand: ""
-    startCommand: "python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
