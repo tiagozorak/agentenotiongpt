@@ -3,5 +3,6 @@ services:
     name: agentenotiongpt
     runtime: python
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "python main.py"
+    startCommand: "python3 main.py"
+
 
