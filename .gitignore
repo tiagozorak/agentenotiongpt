@@ -7,3 +7,6 @@ venv/
 *.pyd
 .Python
 env/
+echo "pyproject.toml" >> .gitignore
+echo "poetry.lock" >> .gitignore
+git rm --cached pyproject.toml poetry.lock

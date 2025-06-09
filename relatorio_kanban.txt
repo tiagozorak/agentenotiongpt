@@ -1,0 +1,21 @@
+📊 **Relatório de Análise de Kanban - 07/06/2025**
+
+### 🔍 Distribuição por Status:
+- 📋 Em Planejamento: 2 card(s)
+- 💡 Ideias para Post: 2 card(s)
+- Relatório: 1 card(s)
+- 🛠️ Em Criação: 1 card(s)
+- ✅ Ideias Aprovadas: 1 card(s)
+
+### 🧩 Distribuição por Tipo de Post:
+- Sem Tipo de post: 5 card(s)
+- 🎥 Vídeo: 1 card(s)
+- 🎞️ Reels: 1 card(s)
+
+### 🔁 Alterações detectadas desde a última análise:
+Nenhuma mudança significativa detectada.
+
+### 🧠 Insights Automáticos:
+⚠️ Poucos cards em 'Em Criação'. Considere mover ideias aprovadas para esta etapa.
+📌 5 cards estão sem tipo de post definido.
+🎨 Nenhum carrossel ou foto planejado. Considere diversificar os formatos de conteúdo.
