@@ -3,4 +3,6 @@ services:
     name: agentenotiongpt
     env: docker
     plan: free
-    dockerfilePath: ./Dockerfile
+    branch: main
+    rootDir: .
+    dockerfilePath: Dockerfile

@@ -1,17 +1,20 @@
-# Dockerfile
+# Usa uma imagem leve do Python 3.11
 FROM python:3.11-slim
 
-# Diretório da aplicação
+# Define diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copia os arquivos
-COPY . .
+# Copia arquivos de dependência primeiro para cache otimizado
+COPY requirements.txt .
 
-# Instala dependências
+# Instala as dependências
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expõe a porta padrão do FastAPI
+# Copia o restante dos arquivos da aplicação
+COPY . .
+
+# Expõe a porta que o Render irá mapear (8000 é padrão para Uvicorn)
 EXPOSE 8000
 
-# Comando para iniciar o servidor
+# Comando padrão para iniciar o servidor FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

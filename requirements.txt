@@ -1,5 +1,5 @@
-fastapi
-uvicorn
-httpx
-notion-client
-python-dotenv
+fastapi==0.115.12
+uvicorn==0.34.3
+python-dotenv==1.1.0
+httpx==0.28.1
+notion-client==2.3.0
