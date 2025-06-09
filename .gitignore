@@ -1,6 +1,18 @@
-__pycache__/
-.env
+# Ambientes virtuais
+.venv/
 venv/
+
+# Variáveis de ambiente
+.env
+.env.*
+
+# Cache Python
+__pycache__/
 *.pyc
-relatorio_kanban.txt
-status_anterior.json
+
+# Arquivos do VS Code
+.vscode/
+
+# Arquivos temporários
+*.log
+*.bak

@@ -1,6 +1,5 @@
 fastapi
-uvicorn
-requests
+uvicorn[standard]
+httpx
 python-dotenv
 notion-client
-pandas
