@@ -3,9 +3,6 @@ services:
     name: agentenotiongpt
     runtime: python
     buildCommand: |
-      python -m pip install --upgrade pip
-      pip install -r requirements.txt
-    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PORT
-        value: 10000
+      python -m pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: |
+      python -m uvicorn main:app --host 0.0.0.0 --port $PORT
