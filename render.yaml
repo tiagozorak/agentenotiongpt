@@ -3,7 +3,7 @@ services:
     name: agente-gpt
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: NOTION_TOKEN
         value: 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
