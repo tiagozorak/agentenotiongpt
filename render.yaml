@@ -2,13 +2,17 @@ services:
   - type: web
     name: agentenotiongpt
     runtime: python3.11
-    skipPoetryInstall: true
+    env: python
     buildCommand: |
-      echo "🔧 Python version:"
-      python3 --version
-      echo "🔧 Pip version:"
-      python3 -m pip --version
-      echo "📦 Instalando dependências..."
-      python3 -m pip install --upgrade pip
-      python3 -m pip install -r requirements.txt
-    startCommand: python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT
+      python3 -m venv /opt/render/project/venv
+      . /opt/render/project/venv/bin/activate
+      pip install -r requirements.txt
+    startCommand: |
+      . /opt/render/project/venv/bin/activate
+      python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    preDeployCommand: chmod +x predeploy.sh && ./predeploy.sh
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DISABLE_POETRY_CREATE
+        value: true
