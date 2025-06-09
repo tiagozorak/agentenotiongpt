@@ -4,8 +4,3 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
-    envVars:
-      - key: NOTION_TOKEN
-        value: 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
-      - key: DATABASE_ID
-        value: 2062b8686ff281cfb7f5e379236da5cf
