@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-gunicorn
 httpx
-python-dotenv
 notion-client
+python-dotenv
