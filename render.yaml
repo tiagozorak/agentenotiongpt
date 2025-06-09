@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: agentenotiongpt
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT
