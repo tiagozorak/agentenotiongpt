@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: agentenotiongpt
-    env: docker
-    plan: free
-    branch: main
-    rootDir: .
-    dockerfilePath: Dockerfile
