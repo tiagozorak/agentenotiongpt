@@ -129,3 +129,19 @@ app = FastAPI()
 @app.get("/list_env")
 def list_env_vars():
     return dict(os.environ)
+from fastapi import APIRouter
+from notion_client import Client
+import os
+
+router = APIRouter()
+
+@router.get("/test_notion_auth")
+def test_notion_auth():
+    notion_token = os.getenv("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")
+    try:
+        client = Client(auth=notion_token)
+        user_info = client.users.list()
+        return {"status": "success", "data": user_info}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+app.include_router(router)
