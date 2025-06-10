@@ -5,16 +5,17 @@ import os
 import requests
 
 load_dotenv()
-
 app = FastAPI()
 
-# ✅ Corrigido: nomes das variáveis
 NOTION_CLIENT_ID = os.getenv("NOTION_CLIENT_ID")
 NOTION_CLIENT_SECRET = os.getenv("NOTION_CLIENT_SECRET")
 NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 
 NOTION_AUTHORIZE_URL = "https://api.notion.com/v1/oauth/authorize"
 NOTION_TOKEN_URL = "https://api.notion.com/v1/oauth/token"
+
+# ⚠️ Substitua por seu token temporariamente (ou implemente armazenamento em breve)
+TEMP_ACCESS_TOKEN = "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"
 
 @app.get("/auth/notion")
 def start_oauth():
@@ -45,3 +46,25 @@ def oauth_callback(request: Request):
         return JSONResponse(status_code=token_response.status_code, content=token_response.json())
 
     return token_response.json()
+
+@app.get("/notion/databases")
+def list_databases():
+    response = requests.post(
+        "https://api.notion.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {TEMP_ACCESS_TOKEN}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        },
+        json={
+            "filter": {
+                "property": "object",
+                "value": "database"
+            }
+        }
+    )
+
+    if response.status_code != 200:
+        return JSONResponse(status_code=response.status_code, content=response.json())
+
+    return response.json()
