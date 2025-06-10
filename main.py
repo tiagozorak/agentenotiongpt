@@ -70,7 +70,7 @@ def list_databases():
     return response.json()
 @app.get("/notion/databases/simplified")
 def simplified_databases():
-    access_token = os.getenv("NOTION_ACCESS_TOKEN")  # temporário, podemos mudar
+    access_token = os.getenv("feb25426-f9a5-4955-8ec7-02063d216efb")  # temporário, podemos mudar
     response = requests.post(
         "https://api.notion.com/v1/search",
         headers={
