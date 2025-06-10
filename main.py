@@ -121,3 +121,11 @@ def debug_token():
         "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": token[:8] + "..." if token else None,
         "env_var_exists": token is not None
     }
+import os
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/list_env")
+def list_env_vars():
+    return dict(os.environ)
