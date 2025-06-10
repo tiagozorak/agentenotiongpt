@@ -104,3 +104,54 @@ def simplified_databases(workspace_id: str):
     ]
 
     return {"databases": simplified}
+from fastapi import Body
+
+@app.post("/notion/databases/{database_id}/add_post")
+def create_post(database_id: str, workspace_id: str, body: dict = Body(...)):
+    try:
+        with open("tokens.json", "r") as file:
+            tokens = json.load(file)
+        if workspace_id not in tokens:
+            return JSONResponse(status_code=404, content={"error": "Workspace ID não encontrado"})
+        access_token = tokens[workspace_id]["access_token"]
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json"
+    }
+
+    # Monta o payload com os campos usados na sua database
+    new_page = {
+        "parent": {"database_id": database_id},
+        "properties": {
+            "Nome": {
+                "title": [{
+                    "text": {"content": body.get("Nome", "Sem título")}
+                }]
+            },
+            "Status": {
+                "select": {"name": body.get("Status")}
+            },
+            "Tipo de post": {
+                "select": {"name": body.get("Tipo de post")}
+            },
+            "Data de postagem": {
+                "date": {"start": body.get("Data de postagem")}
+            },
+            "Hashtags": {
+                "rich_text": [{
+                    "text": {"content": body.get("Hashtags", "")}
+                }]
+            }
+        }
+    }
+
+    response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page)
+
+    if response.status_code != 200:
+        return JSONResponse(status_code=response.status_code, content=response.json())
+
+    return JSONResponse(status_code=201, content={"message": "Post criado com sucesso", "notion_response": response.json()})
