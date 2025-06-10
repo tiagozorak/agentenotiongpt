@@ -1,147 +1,52 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 from notion_client import Client
 import os
 
 app = FastAPI()
 
-# Inicializa o cliente da API do Notion
-notion = Client(auth=os.getenv("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"))
-DATABASE_ID = os.getenv("2062b8686ff281cfb7f5e379236da5cf")
+# Configura o cliente Notion com a variável de ambiente
+notion = Client(
+    auth=os.getenv("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"),
+    notion_version="2022-06-28"
+)
 
-# Modelos de entrada
-class PostCreate(BaseModel):
+class PageTitle(BaseModel):
     title: str
-    description: Optional[str] = None
-    status: Optional[str] = "A fazer"
 
-class PostUpdate(BaseModel):
-    page_id: str
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
+@app.get("/")
+async def root():
+    return {"message": "Agent GPT is running successfully on Render!"}
 
-class PostDelete(BaseModel):
-    page_id: str
-
-@app.post("/create_post")
-async def create_post(post: PostCreate):
+@app.get("/test-notion")
+async def test_notion():
     try:
-        new_page = notion.pages.create(
-            parent={"database_id": DATABASE_ID},
+        response = notion.search(filter={"property": "object", "value": "page"})
+        return {"status": "success", "pages_found": len(response.get("results", []))}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
+
+@app.post("/create-page")
+async def create_page(payload: PageTitle):
+    try:
+        database_id = os.getenv("2062b8686ff281cfb7f5e379236da5cf")
+        if not database_id:
+            raise HTTPException(status_code=500, detail="DATABASE_ID not set in environment variables")
+
+        response = notion.pages.create(
+            parent={"database_id": database_id},
             properties={
-                "Título": {
-                    "title": [{"text": {"content": post.title}}]
-                },
-                "Status": {
-                    "select": {"name": post.status}
-                }
-            },
-            children=[
-                {
-                    "object": "block",
-                    "type": "paragraph",
-                    "paragraph": {
-                        "rich_text": [
-                            {"type": "text", "text": {"content": post.description or ""}}
-                        ]
-                    }
-                }
-            ]
-        )
-        return {"message": "Post criado com sucesso", "page_id": new_page["id"]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.patch("/update_post")
-async def update_post(update: PostUpdate):
-    try:
-        props = {}
-        if update.title:
-            props["Título"] = {"title": [{"text": {"content": update.title}}]}
-        if update.status:
-            props["Status"] = {"select": {"name": update.status}}
-
-        if props:
-            notion.pages.update(page_id=update.page_id, properties=props)
-
-        if update.description is not None:
-            # Remove todos os blocos existentes e adiciona o novo conteúdo
-            blocks = notion.blocks.children.list(update.page_id)["results"]
-            for block in blocks:
-                notion.blocks.delete(block["id"])
-            notion.blocks.children.append(
-                update.page_id,
-                children=[
-                    {
-                        "object": "block",
-                        "type": "paragraph",
-                        "paragraph": {
-                            "rich_text": [
-                                {"type": "text", "text": {"content": update.description}}
-                            ]
+                "Name": {
+                    "title": [
+                        {
+                            "text": {
+                                "content": payload.title
+                            }
                         }
-                    }
-                ]
-            )
-
-        return {"message": "Post atualizado com sucesso"}
+                    ]
+                }
+            }
+        )
+        return {"status": "success", "page_id": response["id"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/list_posts")
-async def list_posts():
-    try:
-        response = notion.databases.query(database_id=DATABASE_ID)
-        posts = []
-        for result in response["results"]:
-            props = result["properties"]
-            posts.append({
-                "page_id": result["id"],
-                "title": props["Título"]["title"][0]["text"]["content"] if props["Título"]["title"] else "",
-                "status": props["Status"]["select"]["name"] if props["Status"]["select"] else ""
-            })
-        return posts
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/delete_post")
-async def delete_post(data: PostDelete):
-    try:
-        notion.blocks.delete(block_id=data.page_id)
-        return {"message": "Post excluído com sucesso"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-@app.get("/debug_token")
-def debug_token():
-    from os import getenv
-    token = getenv("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")
-    return {
-        "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": token[:8] + "..." if token else None,
-        "env_var_exists": token is not None
-    }
-import os
-from fastapi import FastAPI
-
-app = FastAPI()
-
-@app.get("/list_env")
-def list_env_vars():
-    return dict(os.environ)
-from fastapi import APIRouter
-from notion_client import Client
-import os
-
-router = APIRouter()
-
-@router.get("/test_notion_auth")
-def test_notion_auth():
-    notion_token = os.getenv("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")
-    try:
-        client = Client(auth=notion_token)
-        user_info = client.users.list()
-        return {"status": "success", "data": user_info}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-app.include_router(router)
