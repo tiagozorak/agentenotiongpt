@@ -177,11 +177,9 @@ def get_summary(database_id: str):
             tokens = json.load(f)
         token = list(tokens.values())[0]["access_token"]
     except Exception as e:
-        print(f"❌ Erro ao ler token: {e}")
-        return JSONResponse(status_code=500, content={"error": "Token inválido"})
+        return JSONResponse(status_code=500, content={"error": f"Erro ao ler token: {e}"})
 
     try:
-        print(f"🔍 Consultando banco: {database_id}")
         r = requests.post(
             f"https://api.notion.com/v1/databases/{database_id}/query",
             headers={
@@ -192,7 +190,6 @@ def get_summary(database_id: str):
         )
 
         if r.status_code != 200:
-            print(f"⚠️ Notion retornou status {r.status_code}: {r.text}")
             return JSONResponse(status_code=r.status_code, content=r.json())
 
         data = r.json()
@@ -201,8 +198,12 @@ def get_summary(database_id: str):
 
         for item in data.get("results", []):
             props = item.get("properties", {})
-            status = props.get("Status", {}).get("select", {}).get("name")
-            tipo = props.get("Tipo de post", {}).get("select", {}).get("name")
+
+            status_obj = props.get("Status", {}).get("select")
+            tipo_obj = props.get("Tipo de post", {}).get("select")
+
+            status = status_obj.get("name") if status_obj else None
+            tipo = tipo_obj.get("name") if tipo_obj else None
 
             if status:
                 status_count[status] = status_count.get(status, 0) + 1
@@ -215,8 +216,7 @@ def get_summary(database_id: str):
         }
 
     except Exception as e:
-        print(f"❌ Erro inesperado: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={"error": f"Erro inesperado: {str(e)}"})
 
 # GET - Ler um post específico
 @app.get("/notion/post/{page_id}")
