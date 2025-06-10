@@ -68,3 +68,34 @@ def list_databases():
         return JSONResponse(status_code=response.status_code, content=response.json())
 
     return response.json()
+@app.get("/notion/databases/simplified")
+def simplified_databases():
+    access_token = os.getenv("NOTION_ACCESS_TOKEN")  # temporário, podemos mudar
+    response = requests.post(
+        "https://api.notion.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        },
+        json={"filter": {"property": "object", "value": "database"}}
+    )
+
+    if response.status_code != 200:
+        return JSONResponse(status_code=response.status_code, content=response.json())
+
+    data = response.json()
+    simplified = [
+        {
+            "id": db["id"],
+            "title": (
+                db.get("title", [{}])[0].get("text", {}).get("content", "")
+                if db.get("title") else "(sem título)"
+            ),
+            "url": db.get("url"),
+            "created_time": db.get("created_time")
+        }
+        for db in data.get("results", [])
+    ]
+
+    return {"databases": simplified}
