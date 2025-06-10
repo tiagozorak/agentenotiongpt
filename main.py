@@ -176,35 +176,47 @@ def get_summary(database_id: str):
         with open("tokens.json") as f:
             tokens = json.load(f)
         token = list(tokens.values())[0]["access_token"]
-    except:
+    except Exception as e:
+        print(f"❌ Erro ao ler token: {e}")
         return JSONResponse(status_code=500, content={"error": "Token inválido"})
 
-    r = requests.post(
-        f"https://api.notion.com/v1/databases/{database_id}/query",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json"
+    try:
+        print(f"🔍 Consultando banco: {database_id}")
+        r = requests.post(
+            f"https://api.notion.com/v1/databases/{database_id}/query",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Notion-Version": "2022-06-28",
+                "Content-Type": "application/json"
+            }
+        )
+
+        if r.status_code != 200:
+            print(f"⚠️ Notion retornou status {r.status_code}: {r.text}")
+            return JSONResponse(status_code=r.status_code, content=r.json())
+
+        data = r.json()
+        status_count = {}
+        tipo_count = {}
+
+        for item in data.get("results", []):
+            props = item.get("properties", {})
+            status = props.get("Status", {}).get("select", {}).get("name")
+            tipo = props.get("Tipo de post", {}).get("select", {}).get("name")
+
+            if status:
+                status_count[status] = status_count.get(status, 0) + 1
+            if tipo:
+                tipo_count[tipo] = tipo_count.get(tipo, 0) + 1
+
+        return {
+            "totais_por_status": status_count,
+            "totais_por_tipo": tipo_count
         }
-    )
-    if r.status_code != 200:
-        return JSONResponse(status_code=r.status_code, content=r.json())
 
-    data = r.json()
-    status_count = {}
-    tipo_count = {}
-
-    for item in data.get("results", []):
-        props = item.get("properties", {})
-        status = props.get("Status", {}).get("select", {}).get("name")
-        tipo = props.get("Tipo de post", {}).get("select", {}).get("name")
-
-        if status:
-            status_count[status] = status_count.get(status, 0) + 1
-        if tipo:
-            tipo_count[tipo] = tipo_count.get(tipo, 0) + 1
-
-    return {"totais_por_tipo": tipo_count, "totais_por_status": status_count}
+    except Exception as e:
+        print(f"❌ Erro inesperado: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # GET - Ler um post específico
 @app.get("/notion/post/{page_id}")
