@@ -70,7 +70,46 @@ def list_databases():
     return response.json()
 @app.get("/notion/databases/simplified")
 def simplified_databases():
-    access_token = os.getenv("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")  # temporário, podemos mudar
+    import json
+
+@app.get("/notion/databases/simplified")
+def simplified_databases():
+    try:
+        with open("tokens.json", "r") as file:
+            tokens = json.load(file)
+            # Pegamos o primeiro (e único) token do dict
+            access_token = list(tokens.values())[0]["access_token"]
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
+
+    response = requests.post(
+        "https://api.notion.com/v1/search",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        },
+        json={"filter": {"property": "object", "value": "database"}}
+    )
+
+    if response.status_code != 200:
+        return JSONResponse(status_code=response.status_code, content=response.json())
+
+    data = response.json()
+    simplified = [
+        {
+            "id": db["id"],
+            "title": (
+                db.get("title", [{}])[0].get("text", {}).get("content", "")
+                if db.get("title") else "(sem título)"
+            ),
+            "url": db.get("url"),
+            "created_time": db.get("created_time")
+        }
+        for db in data.get("results", [])
+    ]
+
+    return {"databases": simplified}
     response = requests.post(
         "https://api.notion.com/v1/search",
         headers={
