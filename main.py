@@ -46,6 +46,7 @@ def oauth_callback(request: Request):
 
     data = token_response.json()
     workspace_id = data.get("workspace_id")
+
     data_to_save = {
         workspace_id: {
             "user": data["owner"]["user"]["name"],
@@ -67,8 +68,10 @@ def simplified_databases(workspace_id: str):
     try:
         with open("tokens.json", "r") as file:
             tokens = json.load(file)
+
         if workspace_id not in tokens:
             return JSONResponse(status_code=404, content={"error": "Workspace ID não encontrado"})
+
         access_token = tokens[workspace_id]["access_token"]
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
@@ -102,7 +105,7 @@ def simplified_databases(workspace_id: str):
 
     return {"databases": simplified}
 
-# --- CRUD e análise de posts ---
+# Schema de mapeamento de campos
 
 database_schema = {
     "Nome": lambda v: {"title": [{"text": {"content": v}}]},
@@ -112,6 +115,7 @@ database_schema = {
     "Data de postagem": lambda v: {"date": {"start": v}}
 }
 
+# PATCH - Atualizar post existente
 @app.patch("/notion/post/{page_id}")
 def update_post(page_id: str, payload: dict):
     try:
@@ -137,12 +141,14 @@ def update_post(page_id: str, payload: dict):
     )
     return {"message": "Post atualizado", "notion_response": r.json()}
 
+# POST - Atualizar status
 @app.post("/notion/update_status")
 def update_status(data: dict):
     page_id = data.get("page_id")
     novo_status = data.get("status")
     return update_post(page_id, {"Status": novo_status})
 
+# DELETE - Arquivar post
 @app.delete("/notion/post/{page_id}")
 def delete_post(page_id: str):
     try:
@@ -163,6 +169,7 @@ def delete_post(page_id: str):
     )
     return {"message": "Post arquivado", "notion_response": r.json()}
 
+# GET - Resumo por status e tipo de post
 @app.get("/notion/summary/{database_id}")
 def get_summary(database_id: str):
     try:
@@ -199,6 +206,7 @@ def get_summary(database_id: str):
 
     return {"totais_por_tipo": tipo_count, "totais_por_status": status_count}
 
+# GET - Ler um post específico
 @app.get("/notion/post/{page_id}")
 def get_post(page_id: str):
     try:
