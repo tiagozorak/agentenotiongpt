@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from dotenv import load_dotenv
 import os
 import requests
+import json
 
 load_dotenv()
 app = FastAPI()
@@ -13,9 +14,6 @@ NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 
 NOTION_AUTHORIZE_URL = "https://api.notion.com/v1/oauth/authorize"
 NOTION_TOKEN_URL = "https://api.notion.com/v1/oauth/token"
-
-# ⚠️ Substitua por seu token temporariamente (ou implemente armazenamento em breve)
-TEMP_ACCESS_TOKEN = "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"
 
 @app.get("/auth/notion")
 def start_oauth():
@@ -47,69 +45,15 @@ def oauth_callback(request: Request):
 
     return token_response.json()
 
-@app.get("/notion/databases")
-def list_databases():
-    response = requests.post(
-        "https://api.notion.com/v1/search",
-        headers={
-            "Authorization": f"Bearer {TEMP_ACCESS_TOKEN}",
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json"
-        },
-        json={
-            "filter": {
-                "property": "object",
-                "value": "database"
-            }
-        }
-    )
-
-    if response.status_code != 200:
-        return JSONResponse(status_code=response.status_code, content=response.json())
-
-    return response.json()
-@app.get("/notion/databases/simplified")
-def simplified_databases():
-    import json
-
 @app.get("/notion/databases/simplified")
 def simplified_databases():
     try:
         with open("tokens.json", "r") as file:
             tokens = json.load(file)
-            # Pegamos o primeiro (e único) token do dict
             access_token = list(tokens.values())[0]["access_token"]
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
 
-    response = requests.post(
-        "https://api.notion.com/v1/search",
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json"
-        },
-        json={"filter": {"property": "object", "value": "database"}}
-    )
-
-    if response.status_code != 200:
-        return JSONResponse(status_code=response.status_code, content=response.json())
-
-    data = response.json()
-    simplified = [
-        {
-            "id": db["id"],
-            "title": (
-                db.get("title", [{}])[0].get("text", {}).get("content", "")
-                if db.get("title") else "(sem título)"
-            ),
-            "url": db.get("url"),
-            "created_time": db.get("created_time")
-        }
-        for db in data.get("results", [])
-    ]
-
-    return {"databases": simplified}
     response = requests.post(
         "https://api.notion.com/v1/search",
         headers={
