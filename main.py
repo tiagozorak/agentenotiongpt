@@ -113,3 +113,11 @@ async def delete_post(data: PostDelete):
         return {"message": "Post excluído com sucesso"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/debug_token")
+def debug_token():
+    from os import getenv
+    token = getenv("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")
+    return {
+        "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": token[:8] + "..." if token else None,
+        "env_var_exists": token is not None
+    }
