@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+from datetime import datetime
 
 load_dotenv()
 app = FastAPI()
@@ -43,14 +44,35 @@ def oauth_callback(request: Request):
     if token_response.status_code != 200:
         return JSONResponse(status_code=token_response.status_code, content=token_response.json())
 
-    return token_response.json()
+    data = token_response.json()
+    workspace_id = data.get("workspace_id")
+
+    data_to_save = {
+        workspace_id: {
+            "user": data["owner"]["user"]["name"],
+            "email": data["owner"]["user"]["person"]["email"],
+            "access_token": data["access_token"],
+            "workspace_name": data["workspace_name"],
+            "bot_id": data["bot_id"],
+            "created_at": datetime.utcnow().isoformat()
+        }
+    }
+
+    with open("tokens.json", "w") as f:
+        json.dump(data_to_save, f, indent=2)
+
+    return JSONResponse(content={"message": "Token salvo com sucesso", "workspace_id": workspace_id})
 
 @app.get("/notion/databases/simplified")
-def simplified_databases():
+def simplified_databases(workspace_id: str):
     try:
         with open("tokens.json", "r") as file:
             tokens = json.load(file)
-            access_token = list(tokens.values())[0]["access_token"]
+
+        if workspace_id not in tokens:
+            return JSONResponse(status_code=404, content={"error": "Workspace ID não encontrado"})
+
+        access_token = tokens[workspace_id]["access_token"]
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
 
