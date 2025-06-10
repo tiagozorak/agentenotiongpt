@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Path
 from fastapi.responses import RedirectResponse, JSONResponse
 from dotenv import load_dotenv
 import os
@@ -46,7 +46,6 @@ def oauth_callback(request: Request):
 
     data = token_response.json()
     workspace_id = data.get("workspace_id")
-
     data_to_save = {
         workspace_id: {
             "user": data["owner"]["user"]["name"],
@@ -68,10 +67,8 @@ def simplified_databases(workspace_id: str):
     try:
         with open("tokens.json", "r") as file:
             tokens = json.load(file)
-
         if workspace_id not in tokens:
             return JSONResponse(status_code=404, content={"error": "Workspace ID não encontrado"})
-
         access_token = tokens[workspace_id]["access_token"]
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
@@ -104,54 +101,118 @@ def simplified_databases(workspace_id: str):
     ]
 
     return {"databases": simplified}
-from fastapi import Body
 
-@app.post("/notion/databases/{database_id}/add_post")
-def create_post(database_id: str, workspace_id: str, body: dict = Body(...)):
+# --- CRUD e análise de posts ---
+
+database_schema = {
+    "Nome": lambda v: {"title": [{"text": {"content": v}}]},
+    "Status": lambda v: {"select": {"name": v}},
+    "Tipo de post": lambda v: {"select": {"name": v}},
+    "Hashtags": lambda v: {"rich_text": [{"text": {"content": v}}]},
+    "Data de postagem": lambda v: {"date": {"start": v}}
+}
+
+@app.patch("/notion/post/{page_id}")
+def update_post(page_id: str, payload: dict):
     try:
-        with open("tokens.json", "r") as file:
-            tokens = json.load(file)
-        if workspace_id not in tokens:
-            return JSONResponse(status_code=404, content={"error": "Workspace ID não encontrado"})
-        access_token = tokens[workspace_id]["access_token"]
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"Erro ao carregar token: {str(e)}"})
+        with open("tokens.json") as f:
+            tokens = json.load(f)
+        token = list(tokens.values())[0]["access_token"]
+    except:
+        return JSONResponse(status_code=500, content={"error": "Token inválido"})
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-    }
+    properties = {}
+    for campo, valor in payload.items():
+        if campo in database_schema:
+            properties[campo] = database_schema[campo](valor)
 
-    # Monta o payload com os campos usados na sua database
-    new_page = {
-        "parent": {"database_id": database_id},
-        "properties": {
-            "Nome": {
-                "title": [{
-                    "text": {"content": body.get("Nome", "Sem título")}
-                }]
-            },
-            "Status": {
-                "select": {"name": body.get("Status")}
-            },
-            "Tipo de post": {
-                "select": {"name": body.get("Tipo de post")}
-            },
-            "Data de postagem": {
-                "date": {"start": body.get("Data de postagem")}
-            },
-            "Hashtags": {
-                "rich_text": [{
-                    "text": {"content": body.get("Hashtags", "")}
-                }]
-            }
+    r = requests.patch(
+        f"https://api.notion.com/v1/pages/{page_id}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        },
+        json={"properties": properties}
+    )
+    return {"message": "Post atualizado", "notion_response": r.json()}
+
+@app.post("/notion/update_status")
+def update_status(data: dict):
+    page_id = data.get("page_id")
+    novo_status = data.get("status")
+    return update_post(page_id, {"Status": novo_status})
+
+@app.delete("/notion/post/{page_id}")
+def delete_post(page_id: str):
+    try:
+        with open("tokens.json") as f:
+            tokens = json.load(f)
+        token = list(tokens.values())[0]["access_token"]
+    except:
+        return JSONResponse(status_code=500, content={"error": "Token inválido"})
+
+    r = requests.patch(
+        f"https://api.notion.com/v1/pages/{page_id}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        },
+        json={"archived": True}
+    )
+    return {"message": "Post arquivado", "notion_response": r.json()}
+
+@app.get("/notion/summary/{database_id}")
+def get_summary(database_id: str):
+    try:
+        with open("tokens.json") as f:
+            tokens = json.load(f)
+        token = list(tokens.values())[0]["access_token"]
+    except:
+        return JSONResponse(status_code=500, content={"error": "Token inválido"})
+
+    r = requests.post(
+        f"https://api.notion.com/v1/databases/{database_id}/query",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
         }
-    }
+    )
+    if r.status_code != 200:
+        return JSONResponse(status_code=r.status_code, content=r.json())
 
-    response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page)
+    data = r.json()
+    status_count = {}
+    tipo_count = {}
 
-    if response.status_code != 200:
-        return JSONResponse(status_code=response.status_code, content=response.json())
+    for item in data.get("results", []):
+        props = item.get("properties", {})
+        status = props.get("Status", {}).get("select", {}).get("name")
+        tipo = props.get("Tipo de post", {}).get("select", {}).get("name")
 
-    return JSONResponse(status_code=201, content={"message": "Post criado com sucesso", "notion_response": response.json()})
+        if status:
+            status_count[status] = status_count.get(status, 0) + 1
+        if tipo:
+            tipo_count[tipo] = tipo_count.get(tipo, 0) + 1
+
+    return {"totais_por_tipo": tipo_count, "totais_por_status": status_count}
+
+@app.get("/notion/post/{page_id}")
+def get_post(page_id: str):
+    try:
+        with open("tokens.json") as f:
+            tokens = json.load(f)
+        token = list(tokens.values())[0]["access_token"]
+    except:
+        return JSONResponse(status_code=500, content={"error": "Token inválido"})
+
+    r = requests.get(
+        f"https://api.notion.com/v1/pages/{page_id}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Notion-Version": "2022-06-28"
+        }
+    )
+    return r.json()
