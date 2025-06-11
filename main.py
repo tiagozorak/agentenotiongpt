@@ -235,3 +235,34 @@ def recent(database_id: str, limit: int = Query(10, gt=0, le=50)):
 @app.get("/routes")
 def list_routes():
     return [route.path for route in app.routes]
+
+# ---------- ANÁLISE DO KANBAN ----------
+@app.get("/analyze-kanban")
+def analyze_kanban():
+    token = get_token()
+    database_id = os.getenv(DATABASE_ID_ENV) or "2062b8686ff281cfb7f5e379236da5cf"
+
+    resp = requests.post(
+        f"https://api.notion.com/v1/databases/{database_id}/query",
+        headers=notion_headers(token)
+    )
+
+    if not resp.ok:
+        raise HTTPException(resp.status_code, resp.text)
+
+    data = resp.json()
+    status_count = {}
+    type_count = {}
+
+    for page in data.get("results", []):
+        props = page.get("properties", {})
+        status = props.get("Status", {}).get("select", {}).get("name", "Indefinido")
+        tipo = props.get("Tipo de post", {}).get("select", {}).get("name", "Indefinido")
+
+        status_count[status] = status_count.get(status, 0) + 1
+        type_count[tipo] = type_count.get(tipo, 0) + 1
+
+    return {
+        "status_summary": status_count,
+        "type_summary": type_count
+    }
