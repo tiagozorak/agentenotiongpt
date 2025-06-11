@@ -266,3 +266,19 @@ def analyze_kanban():
         "status_summary": status_count,
         "type_summary": type_count
     }
+# ---------- NOVA ROTA COMPATÍVEL ----------
+@app.post("/create-idea")
+def create_idea(body: dict):
+    """
+    Compatível com o agente: espera chaves minúsculas (nome, status, tipo, hashtags, data_postagem, descricao).
+    Redireciona internamente para a lógica já existente de /notion/create-post.
+    """
+    payload = PostCreate(
+        Nome                = body.get("nome"),
+        Status              = body.get("status", "💡 Ideias para Post"),
+        Tipo___de___post    = body.get("tipo") or body.get("tipo___de___post"),
+        Data___de___postagem= body.get("data_postagem"),
+        Hashtags            = body.get("hashtags", ""),
+        description         = body.get("descricao", "")
+    )
+    return create_post(payload)
