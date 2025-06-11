@@ -1,5 +1,3 @@
-# main.py
-
 from fastapi import FastAPI, Request, Path
 from fastapi.responses import RedirectResponse, JSONResponse
 from dotenv import load_dotenv
@@ -141,3 +139,80 @@ def resolve_page_id_by_title(payload: dict):
             return {"page_id": result.get("id")}
 
     return JSONResponse(status_code=404, content={"error": "Título não encontrado"})
+@app.patch("/notion/post/{page_id}")
+def update_post(page_id: str, body: dict):
+    try:
+        with open("tokens.json", "r") as file:
+            tokens = json.load(file)
+        token = list(tokens.values())[0]["access_token"]
+
+        response = requests.patch(
+            f"https://api.notion.com/v1/pages/{page_id}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Notion-Version": "2022-06-28",
+                "Content-Type": "application/json"
+            },
+            json={
+                "properties": {
+                    "Nome": {"title": [{"text": {"content": body.get("Nome", "")}}]},
+                    "Status": {"select": {"name": body.get("Status")}},
+                    "Tipo de post": {"select": {"name": body.get("Tipo de post")}},
+                    "Hashtags": {"rich_text": [{"text": {"content": body.get("Hashtags", "")}}]},
+                    "Data de postagem": {"date": {"start": body.get("Data de postagem")}}
+                }
+            }
+        )
+
+        return {"status": "success", "details": "Post atualizado", "notion_response": response.json()}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
+
+
+@app.patch("/notion/post/{page_id}/status")
+def update_post_status(page_id: str, body: dict):
+    try:
+        status = body.get("status")
+        with open("tokens.json", "r") as file:
+            tokens = json.load(file)
+        token = list(tokens.values())[0]["access_token"]
+
+        response = requests.patch(
+            f"https://api.notion.com/v1/pages/{page_id}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Notion-Version": "2022-06-28",
+                "Content-Type": "application/json"
+            },
+            json={
+                "properties": {
+                    "Status": {"select": {"name": status}}
+                }
+            }
+        )
+
+        return {"status": "success", "details": "Status atualizado", "notion_response": response.json()}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
+
+
+@app.delete("/notion/post/{page_id}")
+def delete_post_by_id(page_id: str):
+    try:
+        with open("tokens.json", "r") as file:
+            tokens = json.load(file)
+        token = list(tokens.values())[0]["access_token"]
+
+        response = requests.patch(
+            f"https://api.notion.com/v1/pages/{page_id}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Notion-Version": "2022-06-28",
+                "Content-Type": "application/json"
+            },
+            json={"archived": True}
+        )
+
+        return {"status": "success", "details": "Post arquivado com sucesso", "notion_response": response.json()}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
