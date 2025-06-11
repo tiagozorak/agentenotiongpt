@@ -58,7 +58,7 @@ def update_post(page_id: str, body: dict):
                 "properties": {
                     "Nome": {"title": [{"text": {"content": body.get("Nome", "")}}]},
                     "Status": {"select": {"name": body.get("Status")}},
-                    "Tipo de post": {"select": {"name": body.get("Tipo de post")}},
+                    "Tipo de post": {"select": {"name": body.get("Tipo___de___post") or body.get("Tipo de post")}},
                     "Hashtags": {"rich_text": [{"text": {"content": body.get("Hashtags", "")}}]},
                     "Data de postagem": {"date": {"start": body.get("Data de postagem")}}
                 }
