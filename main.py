@@ -182,3 +182,6 @@ def update_post_content(page_id: str, body: dict):
 
     except Exception as e:
         return {"status": "error", "details": str(e)}
+@app.get("/routes")
+def list_routes():
+    return [route.path for route in app.routes]
