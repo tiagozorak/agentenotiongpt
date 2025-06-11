@@ -1,3 +1,4 @@
+
 import json
 import requests
 from fastapi import FastAPI
@@ -143,7 +144,7 @@ def update_post_content(page_id: str, body: dict):
                     "Notion-Version": "2022-06-28",
                     "Content-Type": "application/json"
                 },
-                json={ "archived": True }
+                json={"archived": True}
             )
 
         # Adiciona novo bloco
