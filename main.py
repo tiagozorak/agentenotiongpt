@@ -166,7 +166,23 @@ def update_content(page_id: str, body: dict):
         raise HTTPException(400, "Descrição vazia")
 
     token = get_token()
-    # Anexa como novo bloco
+
+    # 1. Recupera os blocos filhos (para deletar)
+    children = requests.get(
+        f"https://api.notion.com/v1/blocks/{page_id}/children",
+        headers=notion_headers(token, json_ct=False)
+    ).json().get("results", [])
+
+    # 2. Remove os blocos existentes
+    for block in children:
+        block_id = block["id"]
+        requests.patch(
+            f"https://api.notion.com/v1/blocks/{block_id}",
+            headers=notion_headers(token),
+            json={"archived": True}
+        )
+
+    # 3. Adiciona novo bloco com a nova legenda
     resp = requests.patch(
         f"https://api.notion.com/v1/blocks/{page_id}/children",
         headers=notion_headers(token),
@@ -181,6 +197,7 @@ def update_content(page_id: str, body: dict):
             }
         }]}
     )
+
     if not resp.ok:
         raise HTTPException(resp.status_code, resp.text)
     return {"status": "success"}
