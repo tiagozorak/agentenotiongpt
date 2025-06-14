@@ -236,20 +236,21 @@ def recent(database_id: str, limit: int = Query(10, gt=0, le=50)):
     if not resp.ok:
         raise HTTPException(resp.status_code, resp.text)
 
-    pages = []
-    for p in response["results"]:
-    props = p["properties"]
+    posts = []
+    for p in resp.json().get("results", []):
+        props = p["properties"]
 
-    post = {
-        "id": p["id"],
-        "nome": props["Nome"]["title"][0]["plain_text"] if props["Nome"]["title"] else "Sem título",
-        "status": props["Status"]["select"]["name"] if props["Status"]["select"] else "Não definido",
-        "tipo": props["Tipo de post"]["select"]["name"] if props["Tipo de post"]["select"] else "Não definido",
-        "data_postagem": props["Data de postagem"]["date"]["start"] if props["Data de postagem"]["date"] else None,
-    }
+        post = {
+            "id": p["id"],
+            "nome": props["Nome"]["title"][0]["plain_text"] if props["Nome"]["title"] else "Sem título",
+            "status": props["Status"]["select"]["name"] if props["Status"]["select"] else "Não definido",
+            "tipo": props["Tipo de post"]["select"]["name"] if props["Tipo de post"]["select"] else "Não definido",
+            "data_postagem": props["Data de postagem"]["date"]["start"] if props["Data de postagem"]["date"] else None,
+        }
 
-    posts.append(post)
+        posts.append(post)
 
+    return posts
 
 # ---------- DEBUG: ROTAS ----------
 @app.get("/routes")
