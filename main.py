@@ -237,15 +237,18 @@ def recent(database_id: str, limit: int = Query(10, gt=0, le=50)):
         raise HTTPException(resp.status_code, resp.text)
 
     pages = []
-    for p in resp.json().get("results", []):
-        pages.append({
-            "id": p["id"],
-            "nome": p["properties"]["Nome"]["title"][0]["plain_text"],
-            "status": p["properties"]["Status"]["select"]["name"],
-            "tipo": p["properties"]["Tipo de post"]["select"]["name"],
-            "created": p["created_time"][:10]
-        })
-    return pages
+    for p in response["results"]:
+    props = p["properties"]
+
+    post = {
+        "id": p["id"],
+        "nome": props["Nome"]["title"][0]["plain_text"] if props["Nome"]["title"] else "Sem título",
+        "status": props["Status"]["select"]["name"] if props["Status"]["select"] else "Não definido",
+        "tipo": props["Tipo de post"]["select"]["name"] if props["Tipo de post"]["select"] else "Não definido",
+        "data_postagem": props["Data de postagem"]["date"]["start"] if props["Data de postagem"]["date"] else None,
+    }
+
+    posts.append(post)
 
 
 # ---------- DEBUG: ROTAS ----------
