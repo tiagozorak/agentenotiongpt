@@ -21,6 +21,14 @@ def notion_headers(token: str, json_ct: bool = True):
         h["Content-Type"] = "application/json"
     return h
 
+# ---------- FUNÇÃO AUXILIAR ----------
+def safe_get(obj, path, default=None):
+    try:
+        for key in path:
+            obj = obj[key]
+        return obj
+    except (KeyError, TypeError, IndexError):
+        return default
 
 # ---------- FASTAPI ----------
 app = FastAPI()
@@ -228,26 +236,28 @@ def summary(database_id: str):
 @app.get("/notion/recent/{database_id}")
 def recent(database_id: str, limit: int = Query(10, gt=0, le=50)):
     token = get_token()
-    resp = requests.post(
+    response = requests.post(
         f"https://api.notion.com/v1/databases/{database_id}/query",
         headers=notion_headers(token),
-        json={"page_size": limit, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
+        json={
+            "page_size": limit,
+            "sorts": [{"timestamp": "created_time", "direction": "descending"}]
+        }
     )
-    if not resp.ok:
-        raise HTTPException(resp.status_code, resp.text)
+
+    if not response.ok:
+        raise HTTPException(response.status_code, response.text)
 
     posts = []
-    for p in resp.json().get("results", []):
+    for p in response.json()["results"]:
         props = p["properties"]
-
         post = {
             "id": p["id"],
-            "nome": props["Nome"]["title"][0]["plain_text"] if props["Nome"]["title"] else "Sem título",
-            "status": props["Status"]["select"]["name"] if props["Status"]["select"] else "Não definido",
-            "tipo": props["Tipo de post"]["select"]["name"] if props["Tipo de post"]["select"] else "Não definido",
-            "data_postagem": props["Data de postagem"]["date"]["start"] if props["Data de postagem"]["date"] else None,
+            "nome": safe_get(props, ["Nome", "title", 0, "plain_text"], "Sem título"),
+            "status": safe_get(props, ["Status", "select", "name"], "Não definido"),
+            "tipo": safe_get(props, ["Tipo de post", "select", "name"], "Não definido"),
+            "data_postagem": safe_get(props, ["Data de postagem", "date", "start"]),
         }
-
         posts.append(post)
 
     return posts
