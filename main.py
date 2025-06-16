@@ -49,21 +49,27 @@ class PostCreate(BaseModel):
 def resolve_title_to_page_id(body: dict):
     title = body.get("title", "").strip()
     if not title:
-        raise HTTPException(400, "Título não fornecido")
+        raise HTTPException(400, "Missing title")
 
     token = get_token()
     resp = requests.post(
         "https://api.notion.com/v1/search",
         headers=notion_headers(token),
-        json={"query": title}
+        json={"query": title, "sort": {"direction": "descending", "timestamp": "last_edited_time"}}
     )
     data = resp.json()
+
     for res in data.get("results", []):
-        nome_raw = res.get("properties", {}).get("Nome", {}).get("title", [])
-        nome = nome_raw[0].get("text", {}).get("content", "") if nome_raw else ""
-        if nome.lower() == title.lower():
+        props = res.get("properties", {})
+        # Verifica diferentes campos que podem conter o título
+        possible_titles = [
+            safe_get(props, ["Nome", "title", 0, "text", "content"]),
+            safe_get(props, ["📌 Título do Post", "title", 0, "text", "content"])
+        ]
+        if any(t and t.lower() == title.lower() for t in possible_titles):
             return {"page_id": res["id"]}
-    raise HTTPException(404, "Título não encontrado")
+
+    raise HTTPException(404, "Title not found")
 
 
 # ---------- CRIAR CARD ----------
@@ -316,12 +322,12 @@ def create_idea(body: dict):
 
 # ---------- TABELA DE CONTEÚDO PLANEJADO ----------
 @app.get("/notion/content-planned/{database_id}")
-def get_content_planned(database_id: str, limit: int = Query(20, gt=0, le=100)):
+def list_planned_content(database_id: str):
     token = get_token()
     resp = requests.post(
         f"https://api.notion.com/v1/databases/{database_id}/query",
         headers=notion_headers(token),
-        json={"page_size": limit}
+        json={"page_size": 20, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
     )
     if not resp.ok:
         raise HTTPException(resp.status_code, resp.text)
@@ -329,7 +335,7 @@ def get_content_planned(database_id: str, limit: int = Query(20, gt=0, le=100)):
     pages = []
     for p in resp.json().get("results", []):
         props = p["properties"]
-        post = {
+        pages.append({
             "id": p["id"],
             "titulo": safe_get(props, "📌 Título do Post", "title"),
             "data_publicacao": safe_get(props, "📆 Data de Publicação", "date"),
@@ -338,11 +344,8 @@ def get_content_planned(database_id: str, limit: int = Query(20, gt=0, le=100)):
             "trafego_pago": safe_get(props, "🚀 Tráfego Pago?", "select"),
             "orcamento": safe_get(props, "💰 Orçamento", "number"),
             "legenda": safe_get(props, "✍️ Legenda / Copy", "rich_text"),
-            "plataformas": [
-                tag.get("name") for tag in props.get("📱 Plataforma", {}).get("multi_select", [])
-            ],
-            "feedback": safe_get(props, "💬 Feedback / Observações", "rich_text")
-        }
-        pages.append(post)
+            "plataformas": safe_get(props, "📱 Plataforma", "multi_select"),
+            "feedback": safe_get(props, "💬 Feedback / Observações", "rich_text"),
+        })
 
     return pages
