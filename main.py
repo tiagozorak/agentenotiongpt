@@ -324,29 +324,44 @@ def create_idea(body: dict):
 @app.get("/notion/content-planned/{database_id}")
 def list_planned_content(database_id: str):
     token = get_token()
-    resp = requests.post(
+    
+    # 1. Lista as páginas da base
+    response = requests.post(
         f"https://api.notion.com/v1/databases/{database_id}/query",
         headers=notion_headers(token),
         json={"page_size": 20, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
     )
-    if not resp.ok:
-        raise HTTPException(resp.status_code, resp.text)
+
+    if not response.ok:
+        raise HTTPException(response.status_code, response.text)
 
     pages = []
-    for p in resp.json().get("results", []):
-        props = p["properties"]
-        pages.append({
-    "id": p["id"],
-    "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
-    "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
-    "status": safe_get(props, ["📋 Status", "rich_text", 0, "plain_text"]),
-    "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
-    "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
-    "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
-    "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
-    "plataformas": [p["name"] for p in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
-    "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"]),
-})
+    for page in response.json().get("results", []):
+        page_id = page["id"]
 
+        # 2. Recupera os dados reais da página
+        detail = requests.get(
+            f"https://api.notion.com/v1/pages/{page_id}",
+            headers=notion_headers(token)
+        )
+
+        if not detail.ok:
+            continue
+
+        props = detail.json().get("properties", {})
+
+        pages.append({
+            "id": page_id,
+            "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
+            "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
+            "status": safe_get(props, ["📋 Status", "rich_text", 0, "plain_text"]),
+            "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
+            "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
+            "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
+            "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
+            "plataformas": [item["name"] for item in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
+            "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"])
+        })
 
     return pages
+
