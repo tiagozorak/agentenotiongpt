@@ -313,3 +313,36 @@ def create_idea(body: dict):
         description         = body.get("descricao", "")
     )
     return create_post(payload)
+
+# ---------- TABELA DE CONTEÚDO PLANEJADO ----------
+@app.get("/notion/content-planned/{database_id}")
+def get_content_planned(database_id: str, limit: int = Query(20, gt=0, le=100)):
+    token = get_token()
+    resp = requests.post(
+        f"https://api.notion.com/v1/databases/{database_id}/query",
+        headers=notion_headers(token),
+        json={"page_size": limit}
+    )
+    if not resp.ok:
+        raise HTTPException(resp.status_code, resp.text)
+
+    pages = []
+    for p in resp.json().get("results", []):
+        props = p["properties"]
+        post = {
+            "id": p["id"],
+            "titulo": safe_get(props, "📌 Título do Post", "title"),
+            "data_publicacao": safe_get(props, "📆 Data de Publicação", "date"),
+            "status": safe_get(props, "📋 Status", "rich_text"),
+            "tipo": safe_get(props, "🎨 Tipo", "rich_text"),
+            "trafego_pago": safe_get(props, "🚀 Tráfego Pago?", "select"),
+            "orcamento": safe_get(props, "💰 Orçamento", "number"),
+            "legenda": safe_get(props, "✍️ Legenda / Copy", "rich_text"),
+            "plataformas": [
+                tag.get("name") for tag in props.get("📱 Plataforma", {}).get("multi_select", [])
+            ],
+            "feedback": safe_get(props, "💬 Feedback / Observações", "rich_text")
+        }
+        pages.append(post)
+
+    return pages
