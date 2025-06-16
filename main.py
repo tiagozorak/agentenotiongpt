@@ -352,14 +352,14 @@ def list_planned_content(database_id: str):
 
         pages.append({
             "id": page_id,
-            "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
+            "titulo": safe_get(props, [list(props.keys())[0], "title", 0, "plain_text"], "Sem título"),
             "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
             "status": safe_get(props, ["📋 Status", "rich_text", 0, "plain_text"]),
             "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
             "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
             "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
             "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
-            "plataformas": [item["name"] for item in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
+            "plataformas": [item.get("name") for item in safe_get(props, ["📱 Plataforma", "multi_select"], []) or []],
             "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"])
         })
 
