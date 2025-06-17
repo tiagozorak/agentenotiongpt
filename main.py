@@ -436,13 +436,13 @@ async def gerar_insight_individual(page_id: str):
 
         if not data:
             return {"erro": "Postagem não encontrada ou dados ausentes."}
-        
+
         taxa = data.get("taxa_engajamento")
         taxa_formatada = f"{taxa:.2f}" if taxa is not None else "0"
 
         # Gera o prompt com base nos dados obtidos
         prompt = f"""
-Você é um especialista em marketing de conteúdo. Analise os dados abaixo de uma publicação em redes sociais com base em suas métricas de engajamento e orçamento, e gere um insight objetivo e estratégico sobre seu desempenho, apontando possíveis melhorias para conteúdos futuros. Seja direto, claro e útil. Os dados são:
+Você é um especialista em marketing de conteúdo. Analise os dados abaixo de uma publicação em redes sociais com base em suas métricas de engajamento e orçamento, e gere um insight objetivo e estratégico sobre seu desempenho, apontando possíveis melhorias para conteúdos futuros. Seja direto, claro e últil. Os dados são:
 
 Título: {data.get("titulo", "Sem título")}
 Tipo: {data.get("tipo", "Não informado")}
