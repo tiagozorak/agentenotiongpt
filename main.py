@@ -347,9 +347,27 @@ def list_planned_content(database_id: str):
             "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
             "plataformas": [tag["name"] for tag in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
             "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"]),
+            "engajamento": {
+                "curtidas_1h": safe_get(props, ["❤️ Curtidas (1h)", "number"]),
+                "curtidas_24h": safe_get(props, ["❤️ Curtidas (24h)", "number"]),
+                "curtidas_7d": safe_get(props, ["❤️ Curtidas (7d)", "number"]),
+                "comentarios_1h": safe_get(props, ["💬 Comentários (1h)", "number"]),
+                "comentarios_24h": safe_get(props, ["💬 Comentários (24h)", "number"]),
+                "comentarios_7d": safe_get(props, ["💬 Comentários (7d)", "number"]),
+                "compartilhamentos_1h": safe_get(props, ["🔁 Compartilhamentos (1h)", "number"]),
+                "compartilhamentos_24h": safe_get(props, ["🔁 Compartilhamentos (24h)", "number"]),
+                "compartilhamentos_7d": safe_get(props, ["🔁 Compartilhamentos (7d)", "number"]),
+                "salvamentos_1h": safe_get(props, ["💾 Salvamentos (1h)", "number"]),
+                "salvamentos_24h": safe_get(props, ["💾 Salvamentos (24h)", "number"]),
+                "salvamentos_7d": safe_get(props, ["💾 Salvamentos (7d)", "number"]),
+                "alcance_1h": safe_get(props, ["👀 Alcance (1h)", "number"]),
+                "alcance_24h": safe_get(props, ["👀 Alcance (24h)", "number"]),
+                "alcance_7d": safe_get(props, ["👀 Alcance (7d)", "number"]),
+                "engajamento_total": safe_get(props, ["📈 Engajamento total", "number"]),
+                "taxa_engajamento": safe_get(props, ["📊 Taxa de Engajamento", "number"]),
+            }
         })
 
     return pages
-
 
 
