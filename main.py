@@ -437,7 +437,8 @@ async def gerar_insight_individual(page_id: str):
         if not data:
             return {"erro": "Postagem não encontrada ou dados ausentes."}
 
-        taxa = data.get("taxa_engajamento")
+        engajamento = data.get("engajamento", {})
+        taxa = engajamento.get("taxa_engajamento")
         taxa_formatada = f"{taxa:.2f}" if taxa is not None else "0"
 
         # Gera o prompt com base nos dados obtidos
