@@ -429,7 +429,7 @@ def list_paid_content(database_id: str):
     return pages
 
 
-@router.get("/notion/insight/{page_id}")
+@app.get("/notion/insight/{page_id}")
 def generate_insight_for_post(page_id: str):
     try:
         page = notion.pages.retrieve(page_id=page_id)
