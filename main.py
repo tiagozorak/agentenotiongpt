@@ -4,10 +4,10 @@ from fastapi import FastAPI, HTTPException, Path, Query
 from pydantic import BaseModel
 
 NOTION_VERSION = "2022-06-28"
-TOKENS_FILE = "tokens.json"                 # ← onde fica ntn_...
-DATABASE_ID_ENV = "NOTION_DATABASE_ID"      # ← opcional: exporte se quiser fixar
-# ID fixo da Tabela de Conteúdo Planejado
-PLANNED_CONTENT_DB = "2062b8686ff281d890a9fd41641b56fb"
+TOKENS_FILE = "tokens.json"
+DATABASE_ID_ENV = "NOTION_DATABASE_ID"
+CONTENT_PLANNED_DATABASE_ID = "2062b8686ff281d890a9fd41641b56fb"
+KANBAN_DATABASE_ID = "2062b868-6ff2-81cf-b7f5-e379236da5cf"
 
 def get_token():
     with open(TOKENS_FILE, "r") as f:
@@ -323,9 +323,10 @@ def create_idea(body: dict):
     return create_post(payload)
 
 # ---------- TABELA DE CONTEÚDO PLANEJADO ----------
-@app.get("/notion/content-planned/{database_id}")
-def list_planned_content(database_id: str):
+@app.get("/notion/content-planned/{_}")
+def list_planned_content(_: str):
     token = get_token()
+    database_id = CONTENT_PLANNED_DATABASE_ID
     resp = requests.post(
         f"https://api.notion.com/v1/databases/{database_id}/query",
         headers=notion_headers(token),
@@ -337,7 +338,6 @@ def list_planned_content(database_id: str):
     pages = []
     for p in resp.json().get("results", []):
         props = p["properties"]
-
         pages.append({
             "id": p["id"],
             "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
