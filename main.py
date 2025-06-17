@@ -428,3 +428,61 @@ def list_paid_content(database_id: str):
 
     return pages
 
+
+@router.get("/notion/insight/{page_id}")
+def generate_insight_for_post(page_id: str):
+    try:
+        page = notion.pages.retrieve(page_id=page_id)
+        props = page["properties"]
+
+        def get(prop_name):
+            return props.get(prop_name, {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+
+        def get_number(prop_name):
+            return props.get(prop_name, {}).get("number")
+
+        def get_select(prop_name):
+            return props.get(prop_name, {}).get("select", {}).get("name")
+
+        def get_multi_select(prop_name):
+            return [item.get("name") for item in props.get(prop_name, {}).get("multi_select", [])]
+
+        titulo = props.get("📌 Título do Post", {}).get("title", [{}])[0].get("text", {}).get("content", "Sem título")
+        tipo = get_select("🎨 Tipo") or "indefinido"
+        trafego = get_select("🚀 Tráfego Pago?") or "Não"
+        plataformas = get_multi_select("📱 Plataforma")
+
+        engajamento = {
+            "curtidas_7d": get_number("❤️ Curtidas (7d)") or 0,
+            "comentarios_7d": get_number("💬 Comentários (7d)") or 0,
+            "compartilhamentos_7d": get_number("🔁 Compartilhamentos (7d)") or 0,
+            "salvamentos_7d": get_number("💾 Salvamentos (7d)") or 0,
+            "alcance_7d": get_number("👀 Alcance (7d)") or 0,
+            "taxa": get_number("📊 Taxa de Engajamento") or 0.0
+        }
+
+        insights = []
+
+        if engajamento["alcance_7d"] > 500 and engajamento["salvamentos_7d"] < 3:
+            insights.append("Alcance alto, mas poucos salvamentos. Pode indicar falta de valor prático ou CTA pouco eficaz.")
+
+        if trafego == "Sim" and engajamento["taxa"] < 0.02:
+            insights.append("Tráfego pago aplicado, mas engajamento abaixo do esperado. Reavaliar copy, segmentação ou formato.")
+
+        if tipo == "Carrossel" and engajamento["comentarios_7d"] > 30:
+            insights.append("Carrossel gerou boa discussão. Esse formato está favorecendo a interação.")
+
+        if not insights:
+            insights.append("Nenhum padrão crítico detectado. Desempenho dentro da média esperada.")
+
+        return {
+            "titulo": titulo,
+            "tipo": tipo,
+            "trafego_pago": trafego,
+            "plataformas": plataformas,
+            "engajamento_7d": engajamento,
+            "insights_gerados": insights
+        }
+
+    except Exception as e:
+        return {"erro": str(e)}
