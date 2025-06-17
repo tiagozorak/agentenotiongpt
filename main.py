@@ -336,22 +336,20 @@ def list_planned_content(database_id: str):
     for p in resp.json().get("results", []):
         props = p["properties"]
 
-        # Detecta automaticamente o campo que é do tipo "title"
-        title_prop = next((k for k, v in props.items() if v.get("type") == "title"), None)
-
         pages.append({
             "id": p["id"],
-            "titulo": safe_get(props, [title_prop, "title", 0, "plain_text"], "Sem título"),
+            "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
             "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
             "status": safe_get(props, ["📋 Status", "rich_text", 0, "plain_text"]),
             "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
             "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
             "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
             "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
-            "plataformas": [item.get("name") for item in safe_get(props, ["📱 Plataforma", "multi_select"], []) or []],
+            "plataformas": [tag["name"] for tag in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
             "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"]),
         })
 
     return pages
+
 
 
