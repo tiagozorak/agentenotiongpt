@@ -324,35 +324,24 @@ def create_idea(body: dict):
 @app.get("/notion/content-planned/{database_id}")
 def list_planned_content(database_id: str):
     token = get_token()
-    
-    # 1. Lista as páginas da base
-    response = requests.post(
+    resp = requests.post(
         f"https://api.notion.com/v1/databases/{database_id}/query",
         headers=notion_headers(token),
         json={"page_size": 20, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
     )
-
-    if not response.ok:
-        raise HTTPException(response.status_code, response.text)
+    if not resp.ok:
+        raise HTTPException(resp.status_code, resp.text)
 
     pages = []
-    for page in response.json().get("results", []):
-        page_id = page["id"]
+    for p in resp.json().get("results", []):
+        props = p["properties"]
 
-        # 2. Recupera os dados reais da página
-        detail = requests.get(
-            f"https://api.notion.com/v1/pages/{page_id}",
-            headers=notion_headers(token)
-        )
-
-        if not detail.ok:
-            continue
-
-        props = detail.json().get("properties", {})
+        # Detecta automaticamente o campo que é do tipo "title"
+        title_prop = next((k for k, v in props.items() if v.get("type") == "title"), None)
 
         pages.append({
-            "id": page_id,
-            "titulo": safe_get(props, [list(props.keys())[0], "title", 0, "plain_text"], "Sem título"),
+            "id": p["id"],
+            "titulo": safe_get(props, [title_prop, "title", 0, "plain_text"], "Sem título"),
             "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
             "status": safe_get(props, ["📋 Status", "rich_text", 0, "plain_text"]),
             "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
@@ -360,8 +349,9 @@ def list_planned_content(database_id: str):
             "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
             "legenda": safe_get(props, ["✍️ Legenda / Copy", "rich_text", 0, "plain_text"]),
             "plataformas": [item.get("name") for item in safe_get(props, ["📱 Plataforma", "multi_select"], []) or []],
-            "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"])
+            "feedback": safe_get(props, ["💬 Feedback / Observações", "rich_text", 0, "plain_text"]),
         })
 
     return pages
+
 
