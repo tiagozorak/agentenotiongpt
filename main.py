@@ -6,6 +6,8 @@ from pydantic import BaseModel
 NOTION_VERSION = "2022-06-28"
 TOKENS_FILE = "tokens.json"                 # ← onde fica ntn_...
 DATABASE_ID_ENV = "NOTION_DATABASE_ID"      # ← opcional: exporte se quiser fixar
+# ID fixo da Tabela de Conteúdo Planejado
+PLANNED_CONTENT_DB = "2062b8686ff281d890a9fd41641b56fb"
 
 def get_token():
     with open(TOKENS_FILE, "r") as f:
