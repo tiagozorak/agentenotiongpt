@@ -430,59 +430,35 @@ def list_paid_content(database_id: str):
 
 
 @app.get("/notion/insight/{page_id}")
-def generate_insight_for_post(page_id: str):
+async def gerar_insight_individual(page_id: str):
     try:
-        page = notion.pages.retrieve(page_id=page_id)
-        props = page["properties"]
+        data = await buscar_dados_postagem(page_id)
 
-        def get(prop_name):
-            return props.get(prop_name, {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+        if not data:
+            return {"erro": "Postagem não encontrada ou dados ausentes."}
 
-        def get_number(prop_name):
-            return props.get(prop_name, {}).get("number")
+        # Gera o prompt com base nos dados obtidos
+        prompt = f"""
+Você é um especialista em marketing de conteúdo. Analise os dados abaixo de uma publicação em redes sociais com base em suas métricas de engajamento e orçamento, e gere um insight objetivo e estratégico sobre seu desempenho, apontando possíveis melhorias para conteúdos futuros. Seja direto, claro e útil. Os dados são:
 
-        def get_select(prop_name):
-            return props.get(prop_name, {}).get("select", {}).get("name")
+Título: {data.get("titulo", "Sem título")}
+Tipo: {data.get("tipo", "Não informado")}
+Data de Publicação: {data.get("data_publicacao", "Não informado")}
+Tráfego Pago: {data.get("trafego_pago", "Não informado")}
+Orçamento: {data.get("orcamento", "0")}
+Plataformas: {", ".join(data.get("plataformas", []))}
 
-        def get_multi_select(prop_name):
-            return [item.get("name") for item in props.get(prop_name, {}).get("multi_select", [])]
+Métricas de Engajamento (em até 7 dias):
+Curtidas: {data.get("curtidas_7d", 0)}
+Comentários: {data.get("comentarios_7d", 0)}
+Compartilhamentos: {data.get("compartilhamentos_7d", 0)}
+Salvamentos: {data.get("salvamentos_7d", 0)}
+Alcance: {data.get("alcance_7d", 0)}
+Taxa de Engajamento: {data.get("taxa_engajamento", 0)}%
+        """
 
-        titulo = props.get("📌 Título do Post", {}).get("title", [{}])[0].get("text", {}).get("content", "Sem título")
-        tipo = get_select("🎨 Tipo") or "indefinido"
-        trafego = get_select("🚀 Tráfego Pago?") or "Não"
-        plataformas = get_multi_select("📱 Plataforma")
-
-        engajamento = {
-            "curtidas_7d": get_number("❤️ Curtidas (7d)") or 0,
-            "comentarios_7d": get_number("💬 Comentários (7d)") or 0,
-            "compartilhamentos_7d": get_number("🔁 Compartilhamentos (7d)") or 0,
-            "salvamentos_7d": get_number("💾 Salvamentos (7d)") or 0,
-            "alcance_7d": get_number("👀 Alcance (7d)") or 0,
-            "taxa": get_number("📊 Taxa de Engajamento") or 0.0
-        }
-
-        insights = []
-
-        if engajamento["alcance_7d"] > 500 and engajamento["salvamentos_7d"] < 3:
-            insights.append("Alcance alto, mas poucos salvamentos. Pode indicar falta de valor prático ou CTA pouco eficaz.")
-
-        if trafego == "Sim" and engajamento["taxa"] < 0.02:
-            insights.append("Tráfego pago aplicado, mas engajamento abaixo do esperado. Reavaliar copy, segmentação ou formato.")
-
-        if tipo == "Carrossel" and engajamento["comentarios_7d"] > 30:
-            insights.append("Carrossel gerou boa discussão. Esse formato está favorecendo a interação.")
-
-        if not insights:
-            insights.append("Nenhum padrão crítico detectado. Desempenho dentro da média esperada.")
-
-        return {
-            "titulo": titulo,
-            "tipo": tipo,
-            "trafego_pago": trafego,
-            "plataformas": plataformas,
-            "engajamento_7d": engajamento,
-            "insights_gerados": insights
-        }
+        insight = await gerar_resposta(prompt)
+        return {"insight": insight}
 
     except Exception as e:
         return {"erro": str(e)}
