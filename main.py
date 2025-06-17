@@ -462,3 +462,41 @@ Taxa de Engajamento: {data.get("taxa_engajamento", 0)}%
 
     except Exception as e:
         return {"erro": str(e)}
+
+
+# ---------- FUNÇÕES PARA INSIGHTS INDIVIDUAIS ----------
+async def buscar_dados_postagem(page_id):
+    token = get_token()
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    resp = requests.get(url, headers=notion_headers(token))
+
+    if not resp.ok:
+        raise HTTPException(resp.status_code, resp.text)
+
+    props = resp.json().get("properties", {})
+
+    return {
+        "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
+        "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
+        "data_publicacao": safe_get(props, ["📆 Data de Publicação", "date", "start"]),
+        "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
+        "orcamento": safe_get(props, ["💰 Orçamento", "number"]),
+        "plataformas": [tag["name"] for tag in safe_get(props, ["📱 Plataforma", "multi_select"], [])],
+        "curtidas_7d": safe_get(props, ["❤️ Curtidas (7d)", "number"]),
+        "comentarios_7d": safe_get(props, ["💬 Comentários (7d)", "number"]),
+        "compartilhamentos_7d": safe_get(props, ["🔁 Compartilhamentos (7d)", "number"]),
+        "salvamentos_7d": safe_get(props, ["💾 Salvamentos (7d)", "number"]),
+        "alcance_7d": safe_get(props, ["👀 Alcance (7d)", "number"]),
+        "taxa_engajamento": safe_get(props, ["📊 Taxa de Engajamento", "number"]),
+    }
+
+async def gerar_resposta(prompt: str):
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI()
+
+    chat = await client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7
+    )
+    return chat.choices[0].message.content.strip()
