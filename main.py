@@ -459,7 +459,7 @@ async def gerar_insight_historico():
         })
 
     exemplos = [
-        f"Título: {p['titulo']} | Tipo: {p['tipo']} | Tráfego: {p['trafego_pago']} | Orçamento: R${p['orcamento']} | Engajamento: {p['engajamento_total']} | Taxa: {p['taxa_engajamento']:.2f}%"
+        f"Título: {p['titulo']} | Tipo: {p['tipo']} | Tráfego: {p['trafego_pago']} | Orçamento: R${p['orcamento']} | Engajamento: {p['engajamento_total']} | Taxa: {p.get('taxa_engajamento', 0) or 0:.2f}%"
         for p in posts[:10] if p["titulo"] != "Sem título"
     ]
 
