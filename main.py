@@ -429,6 +429,52 @@ def list_paid_content(database_id: str):
     return pages
 
 
+# ---------- ANÁLISE HISTÓRICA ----------
+@app.get("/notion/insight/history")
+async def gerar_insight_historico():
+    token = get_token()
+    database_id = CONTENT_PLANNED_DATABASE_ID
+
+    response = requests.post(
+        f"https://api.notion.com/v1/databases/{database_id}/query",
+        headers=notion_headers(token),
+        json={"page_size": 50, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
+    )
+
+    if not response.ok:
+        raise HTTPException(response.status_code, response.text)
+
+    posts = []
+    for p in response.json().get("results", []):
+        props = p["properties"]
+        posts.append({
+            "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
+            "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
+            "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
+            "orcamento": safe_get(props, ["💰 Orçamento", "number"], 0),
+            "taxa_engajamento": safe_get(props, ["📊 Taxa de Engajamento", "formula", "number"],
+                                           safe_get(props, ["📊 Taxa de Engajamento", "number"], 0)),
+            "engajamento_total": safe_get(props, ["📈 Engajamento total", "formula", "number"],
+                                           safe_get(props, ["📈 Engajamento total", "number"], 0)),
+        })
+
+    exemplos = [
+        f"Título: {p['titulo']} | Tipo: {p['tipo']} | Tráfego: {p['trafego_pago']} | Orçamento: R${p['orcamento']} | Engajamento: {p['engajamento_total']} | Taxa: {p['taxa_engajamento']:.2f}%"
+        for p in posts[:10] if p["titulo"] != "Sem título"
+    ]
+
+    prompt = f"""
+Você é um estrategista de conteúdo. Analise os dados de desempenho de posts anteriores listados abaixo e gere insights sobre o que funcionou bem e o que pode ser melhorado. Identifique padrões que ajudem a orientar a criação de novos conteúdos com base em tipo, tráfego pago e taxa de engajamento.
+
+Posts:
+{chr(10).join(exemplos)}
+
+Seja claro, direto e forneça recomendações práticas.
+"""
+
+    insight = await gerar_resposta(prompt)
+    return {"insight": insight}
+
 @app.get("/notion/insight/{page_id}")
 async def gerar_insight_individual(page_id: str):
     try:
@@ -510,50 +556,3 @@ async def gerar_resposta(prompt: str):
         temperature=0.7
     )
     return chat.choices[0].message.content.strip()
-
-
-# ---------- ANÁLISE HISTÓRICA ----------
-@app.get("/notion/insight/history")
-async def gerar_insight_historico():
-    token = get_token()
-    database_id = CONTENT_PLANNED_DATABASE_ID
-
-    response = requests.post(
-        f"https://api.notion.com/v1/databases/{database_id}/query",
-        headers=notion_headers(token),
-        json={"page_size": 50, "sorts": [{"timestamp": "created_time", "direction": "descending"}]}
-    )
-
-    if not response.ok:
-        raise HTTPException(response.status_code, response.text)
-
-    posts = []
-    for p in response.json().get("results", []):
-        props = p["properties"]
-        posts.append({
-            "titulo": safe_get(props, ["📌 Título do Post", "title", 0, "plain_text"], "Sem título"),
-            "tipo": safe_get(props, ["🎨 Tipo", "rich_text", 0, "plain_text"]),
-            "trafego_pago": safe_get(props, ["🚀 Tráfego Pago?", "select", "name"]),
-            "orcamento": safe_get(props, ["💰 Orçamento", "number"], 0),
-            "taxa_engajamento": safe_get(props, ["📊 Taxa de Engajamento", "formula", "number"],
-                                           safe_get(props, ["📊 Taxa de Engajamento", "number"], 0)),
-            "engajamento_total": safe_get(props, ["📈 Engajamento total", "formula", "number"],
-                                           safe_get(props, ["📈 Engajamento total", "number"], 0)),
-        })
-
-    exemplos = [
-        f"Título: {p['titulo']} | Tipo: {p['tipo']} | Tráfego: {p['trafego_pago']} | Orçamento: R${p['orcamento']} | Engajamento: {p['engajamento_total']} | Taxa: {p['taxa_engajamento']:.2f}%"
-        for p in posts[:10] if p["titulo"] != "Sem título"
-    ]
-
-    prompt = f"""
-Você é um estrategista de conteúdo. Analise os dados de desempenho de posts anteriores listados abaixo e gere insights sobre o que funcionou bem e o que pode ser melhorado. Identifique padrões que ajudem a orientar a criação de novos conteúdos com base em tipo, tráfego pago e taxa de engajamento.
-
-Posts:
-{chr(10).join(exemplos)}
-
-Seja claro, direto e forneça recomendações práticas.
-"""
-
-    insight = await gerar_resposta(prompt)
-    return {"insight": insight}
